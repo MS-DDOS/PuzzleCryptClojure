@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: lock-key:1.5.0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/lock-key/lock-key/1.5.0/lock-key-1.5.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

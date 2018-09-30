@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: charset:1.2.1">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/charset/charset/1.2.1/charset-1.2.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
