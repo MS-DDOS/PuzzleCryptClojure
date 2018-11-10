@@ -5,7 +5,8 @@
   (require [byte-streams :refer [to-byte-array possible-conversions]])
   (require [lock-key.core :refer [decrypt decrypt-as-str decrypt-from-base64
                                   encrypt encrypt-as-base64]])
-  (:import (java.io InputStream)))
+  (:import (java.io InputStream)
+           (java.nio.channels ReadableByteChannel)))
 
 (def byte-chunk-padding 0)
 (def cli-options
@@ -14,11 +15,12 @@
     :parse-fn #(Integer/parseInt %)]
    ["-k" "--key STRING" "The key to use for encrypting each shard."]])
 
-(def convert-or-propagate (fn [char]
-   (try
-     (into-array Byte/TYPE char)
-     (catch Exception e
-       (println (str "Caught exception:" (.getMessage e) " " (apply max char)))))))
+(defn partition-byte-seq-nice
+  "fill in later"
+  [file file-length n]
+  (let [chunk-size (long (Math/ceil (/ file-length n)))
+        padding (- (* n chunk-size) file-length)]
+    (byte-streams/convert file ReadableByteChannel)))
 
 (defn byte-seq
   "Similar to https://clojuredocs.org/clojure.core/line-seq, but is byte-oriented instead of line-oriented.
@@ -41,16 +43,15 @@
 (defn encrypt-byte-chunks
   "Encrypts a partitioned sequence of bytes."
   [byte-chunk-coll key]
-  (let [byte-chunk-arrays (map convert-or-propagate byte-chunk-coll)]
-    (pmap encrypt-as-base64 byte-chunk-arrays (repeat key))))
+  (let [byte-chunk-arrays (map byte-streams/to-byte-array byte-chunk-coll)]
+    (map encrypt byte-chunk-arrays (repeat key))))
 
 (defn encrypt-file-as-chunks
   "Shards a file into a given number of chunks and encrypts them."
   [file-path number-of-shards encryption-key]
   (let [file (io/file file-path)
         file-length (.length file)
-        file-input-stream (byte-seq (byte-streams/to-input-stream file))
-        chunks (partition-byte-seq file-input-stream file-length number-of-shards)]
+        chunks (partition-byte-seq-nice file file-length number-of-shards)]
     (encrypt-byte-chunks chunks encryption-key)))
 
 ;; We should explicitly drop the padding, not try and filter based on content.
@@ -61,9 +62,8 @@
 
 (defn decrypt-string-chunks
   [string-chunks decryption-key]
-  (let [decrypted-string-chunks (map decrypt-from-base64 string-chunks (repeat decryption-key))
-        byte-chunks (map convert-or-propagate decrypted-string-chunks)]
-    (map filter-zeroes byte-chunks)))
+  (let [decrypted-string-chunks (map decrypt string-chunks (repeat decryption-key))]
+    (take 10 (map byte-streams/to-string decrypted-string-chunks))))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -72,4 +72,4 @@
     (assert (:key options) "`--key` must be specified")
     (if errors
       (println errors)
-      (time (doall (encrypt-file-as-chunks (first arguments) (:shards options) (:key options)))))))
+      (time (println (take 1000 (encrypt-file-as-chunks (first arguments) (:shards options) (:key options))))))))
